@@ -1,0 +1,16 @@
+*.csv
+build/
+cmake-build-debug/
+cmake-build-release/
+cmake-build-release-debug-host/
+cmake-build-release-remote-host/
+results/
+plots/
+docs/
+notebooks/
+data/
+sbench/*.pickle
+sbench/ilp_pad/output/
+sbench/plots/
+sbench/SOP/_C/generated/
+.git
