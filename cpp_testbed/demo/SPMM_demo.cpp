@@ -12,6 +12,7 @@
 #include <optional>
 #include <utility>
 //#include <aligned_new>
+#include <sys/time.h>
 
 #include <omp.h>
 #include <ryml_std.hpp>
@@ -482,7 +483,7 @@ class SpMMExperiment {
                 }
 #endif
 
-                std::cout << "Begin Testing, nThreads: " << nThreads << " BCols: " << bCols << std::endl;
+                // std::cout << "Begin Testing, nThreads: " << nThreads << " BCols: " << bCols << std::endl;
 
                 { // compute correct C
                     if (get_method_id_mapping<Scalar>().count(REFERENCE_METHOD) == 0) {
@@ -583,7 +584,9 @@ class SpMMExperiment {
 #ifdef ARMPL
                 armpl_set_num_threads(nThreads);
 #endif
-
+                struct timeval timeInspector1;
+                gettimeofday(&timeInspector1, NULL);
+                long timeInspector1s = timeInspector1.tv_sec * 1000000L + timeInspector1.tv_usec;
                 // Cant setup inside OMP environment
                 for (int i = 0; i < methods.size(); i++) {
                     const auto& method = methods[i];
@@ -614,42 +617,61 @@ class SpMMExperiment {
                     auto& executor = executors[method_uid];
                     executor->setup(); // Setup after the config has been set
                 }
+                struct timeval timeInspector2;
+                gettimeofday(&timeInspector2, NULL);
+                long timeInspector2s = timeInspector2.tv_sec * 1000000L + timeInspector2.tv_usec;
+                std::cout << (timeInspector2s - timeInspector1s) << std::endl;
+
+                zero(spmm_task.C, spmm_task.cNumel());
+                
+                // Benchmark 5 times
+                for (int i=0; i<5; i++) {
+                    struct timeval it1;
+                    gettimeofday(&it1, NULL);
+                    long it1s = it1.tv_sec * 1000000L + it1.tv_usec;
+                    for (const auto& [method_uid, executor] : executors) {
+                        (*executor)();
+                    }
+                    struct timeval it2;
+                    gettimeofday(&it2, NULL);
+                    long it2s = it2.tv_sec * 1000000L + it2.tv_usec;
+                    std::cout << (it2s - it1s) << std::endl;
+                }
 
                 // Test correctness
-                for (const auto& [method_uid, executor] : executors) {
-                    zero(spmm_task.C, spmm_task.cNumel());
-                    (*executor)();
+                // for (const auto& [method_uid, executor] : executors) {
+                //     (*executor)();
 
-                    executor->copy_output();
-                    auto is_correct = verify<Scalar>(spmm_task);
-                    auto is_correct_str = is_correct ? "correct" : "incorrect";
+                //     executor->copy_output();
+                //     auto is_correct = verify<Scalar>(spmm_task);
+                //     auto is_correct_str = is_correct ? "correct" : "incorrect";
 
-                    if (!is_correct) {
-                        std::cout << "Incorrect result for " << names[method_uid]
-                                  << " " << executor->get_config_rep() << std::endl;
-                        report_mismatches(spmm_task);
-                    }
+                //     if (!is_correct) {
+                //         std::cout << "Incorrect result for " << names[method_uid]
+                //                   << " " << executor->get_config_rep() << std::endl;
+                //         report_mismatches(spmm_task);
+                //     }
 
-                    is_correct_map[method_uid] = is_correct;
-                }
+                //     is_correct_map[method_uid] = is_correct;
+                // }
 
-                SavedRunsReporter saved_runs_reporter;
-                benchmark::RunSpecifiedBenchmarks(&saved_runs_reporter);
-                benchmark::ClearRegisteredBenchmarks();
+                // SavedRunsReporter saved_runs_reporter;
+                // benchmark::RunSpecifiedBenchmarks(&saved_runs_reporter);
+                // benchmark::ClearRegisteredBenchmarks();
 
 
-                double best_time = 1e12;
-                std::string best_method_uid = "";
-                for (auto& runs : saved_runs_reporter.latest_runs) {
-                    for (auto& run : runs) {
-                        if (run.aggregate_name == "median" && run.GetAdjustedRealTime() < best_time) {
-                            best_time = run.GetAdjustedRealTime();
-                            best_method_uid = run.run_name.str();
-                        }
-                    }
-                }
+                // double best_time = 1e12;
+                // std::string best_method_uid = "";
+                // for (auto& runs : saved_runs_reporter.latest_runs) {
+                //     for (auto& run : runs) {
+                //         if (run.aggregate_name == "median" && run.GetAdjustedRealTime() < best_time) {
+                //             best_time = run.GetAdjustedRealTime();
+                //             best_method_uid = run.run_name.str();
+                //         }
+                //     }
+                // }
 
-                std::map<std::string, csv_row_t> csv_rows;
+                // std::map<std::string, csv_row_t> csv_rows;
 
                 //
                 // Profiling if requested
@@ -675,78 +697,78 @@ class SpMMExperiment {
 #endif
                 }
 
-                for (auto& runs : saved_runs_reporter.latest_runs) {
-                    for (auto& run : runs) {
-                        const auto &method_uid = run.run_name.str();
-                        const auto &name = names[method_uid];
+                // for (auto& runs : saved_runs_reporter.latest_runs) {
+                //     for (auto& run : runs) {
+                //         const auto &method_uid = run.run_name.str();
+                //         const auto &name = names[method_uid];
 
-                        if (only_report_best && best_method_uid != method_uid) {
-                            continue;
-                        }
+                //         if (only_report_best && best_method_uid != method_uid) {
+                //             continue;
+                //         }
 
-                        auto &executor = *executors[method_uid];
-                        auto &csv_row = csv_rows[method_uid];
+                //         auto &executor = *executors[method_uid];
+                //         auto &csv_row = csv_rows[method_uid];
 
-                        csv_row_insert(csv_row, "time " + run.aggregate_name, run.GetAdjustedRealTime());
-                        csv_row_insert(csv_row, "time cpu " + run.aggregate_name, run.GetAdjustedCPUTime());
-                        csv_row_insert(csv_row, "cpufreq", run.counters["cpufreq"]);
-                        csv_row_insert(csv_row, "iterations", run.iterations);
+                //         csv_row_insert(csv_row, "time " + run.aggregate_name, run.GetAdjustedRealTime());
+                //         csv_row_insert(csv_row, "time cpu " + run.aggregate_name, run.GetAdjustedCPUTime());
+                //         csv_row_insert(csv_row, "cpufreq", run.counters["cpufreq"]);
+                //         csv_row_insert(csv_row, "iterations", run.iterations);
 
-                        // Store Config
-                        std::string config_string;
-                        config_string += executor.get_config_rep();
-                        csv_row_insert(csv_row, "config", config_string);
+                //         // Store Config
+                //         std::string config_string;
+                //         config_string += executor.get_config_rep();
+                //         csv_row_insert(csv_row, "config", config_string);
 
-                        csv_row_insert(csv_row, "name", name);
-                        csv_row_insert(csv_row, "matrixPath", matrixPath);
-                        csv_row_insert(csv_row, "numThreads", nThreads);
+                //         csv_row_insert(csv_row, "name", name);
+                //         csv_row_insert(csv_row, "matrixPath", matrixPath);
+                //         csv_row_insert(csv_row, "numThreads", nThreads);
 
-                        // Push into CSV just to make sure it makes it into the header
-                        for (const auto &parameter: expand_config_parameters) csv_row_insert(csv_row, parameter, "");
-                        for (const auto &column: extra_csv_columns) csv_row_insert(csv_row, column, "");
+                //         // Push into CSV just to make sure it makes it into the header
+                //         for (const auto &parameter: expand_config_parameters) csv_row_insert(csv_row, parameter, "");
+                //         for (const auto &column: extra_csv_columns) csv_row_insert(csv_row, column, "");
 
-                        // Matrix details
-                        csv_row_insert(csv_row, "m", spmm_task.m());
-                        csv_row_insert(csv_row, "k", spmm_task.k());
-                        csv_row_insert(csv_row, "n", spmm_task.n());
-                        csv_row_insert(csv_row, "nnz", spmm_task.A->nz);
+                //         // Matrix details
+                //         csv_row_insert(csv_row, "m", spmm_task.m());
+                //         csv_row_insert(csv_row, "k", spmm_task.k());
+                //         csv_row_insert(csv_row, "n", spmm_task.n());
+                //         csv_row_insert(csv_row, "nnz", spmm_task.A->nz);
 
-                        csv_row_insert(csv_row, "correct", is_correct_map[method_uid] ? "correct" : "incorrect");
+                //         csv_row_insert(csv_row, "correct", is_correct_map[method_uid] ? "correct" : "incorrect");
 
-                        // Store extra info
-                        executor.log_extra_info(csv_row);
+                //         // Store extra info
+                //         executor.log_extra_info(csv_row);
 
-                    }
-                }
+                //     }
+                // }
 
 #if 1
-                double dense_time = 0;
-                std::vector<std::pair<std::string, double>> times;
-                for (const auto& [method_uid, csv_row] : csv_rows) {
-                    auto& name = names[method_uid];
+                // double dense_time = 0;
+                // std::vector<std::pair<std::string, double>> times;
+                // for (const auto& [method_uid, csv_row] : csv_rows) {
+                //     auto& name = names[method_uid];
 
-                    if (csv_row.find("time mean") == csv_row.end()) continue;
-                    if (name == "MKL_Dense") {
-                        dense_time = std::stod(csv_row.at("time median"));
-                    }
-                    times.push_back({method_uid, std::stod(csv_row.at("time median"))});
-                }
+                //     if (csv_row.find("time mean") == csv_row.end()) continue;
+                //     if (name == "MKL_Dense") {
+                //         dense_time = std::stod(csv_row.at("time median"));
+                //     }
+                //     times.push_back({method_uid, std::stod(csv_row.at("time median"))});
+                // }
 
-                std::sort(times.begin(), times.end(), [](auto &left, auto &right) {
-                    return left.second < right.second;
-                });
+                // std::sort(times.begin(), times.end(), [](auto &left, auto &right) {
+                //     return left.second < right.second;
+                // });
 
-                for (int i = 0; i < std::min((size_t) 30, times.size()); i++) {
-                    auto& method_uid = times[i].first;
-                    auto& name = names[method_uid];
-                    auto& executor = executors[method_uid];
+                // for (int i = 0; i < std::min((size_t) 30, times.size()); i++) {
+                //     auto& method_uid = times[i].first;
+                //     auto& name = names[method_uid];
+                //     auto& executor = executors[method_uid];
 
-                    std::cout << i + 1 << ". " << times[i].second << " "
-                              << name << " "
-                              << executor->get_config_rep() << " " << std::endl;
-                }
+                //     std::cout << i + 1 << ". " << times[i].second << " "
+                //               << name << " "
+                //               << executor->get_config_rep() << " " << std::endl;
+                // }
 
-                std::cout << "Dense: " << dense_time << std::endl;
+                // std::cout << "Dense: " << dense_time << std::endl;
 #else
                 for (const auto& [method_uid, csv_row] : csv_rows) {
                     std::cout << std::setw(20) << csv_row.at("name") << " ";
@@ -772,8 +794,8 @@ class SpMMExperiment {
                     delete executor;
                 }
 
-                add_missing_columns(csv_rows);
-                write_csv_rows(csv_file, csv_rows);
+                // add_missing_columns(csv_rows);
+                // write_csv_rows(csv_file, csv_rows);
             }
         }
 

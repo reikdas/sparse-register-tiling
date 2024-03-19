@@ -52,7 +52,8 @@ outputs
 geckodriver.log
 /cmake-build-debug/
 /cmake-build-release/
-*.csv
+results.csv
+temp.csv
 *_lucas.py
 /dis.txt
 /sbench/SOP/_C/generated/*

@@ -40,16 +40,16 @@ os.makedirs("/tmp/experiment_scripts", exist_ok=True)
 
 run_sp_reg([args.bcols], [args.threads], str(args.matrix.resolve()), args.outcsv, 'float')
 
-baselines = mkl_sparse
-if args.dense:
-    baselines += mkl_dense
+# baselines = mkl_sparse
+# if args.dense:
+#     baselines += mkl_dense
 
-baslines_exp = gen_dlmc_exp_file(baselines, [args.bcols], [args.threads], "no-filelist.txt")
-run_experiment(baslines_exp, str(args.matrix.resolve()), args.outcsv, 'float')
+# baslines_exp = gen_dlmc_exp_file(baselines, [args.bcols], [args.threads], "no-filelist.txt")
+# run_experiment(baslines_exp, str(args.matrix.resolve()), args.outcsv, 'float')
 
-print("======== Results ========")
-with open(args.outcsv, newline='') as csvfile:
-    reader = csv.DictReader(csvfile)
-    for row in reader:
-        if re.search(r'M[0-9]N[0-9]', row['name']): row['name'] = "Sp. Reg."
-        print(f'{row["name"]:10}: {round(float(row["time median"]), 2)} us  {row["correct"]}')
+# print("======== Results ========")
+# with open(args.outcsv, newline='') as csvfile:
+#     reader = csv.DictReader(csvfile)
+#     for row in reader:
+#         if re.search(r'M[0-9]N[0-9]', row['name']): row['name'] = "Sp. Reg."
+#         print(f'{row["name"]:10}: {round(float(row["time median"]), 2)} us  {row["correct"]}')
