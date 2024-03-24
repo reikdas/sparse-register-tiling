@@ -2,7 +2,7 @@ import subprocess
 import os
 
 if __name__ == "__main__":
-    for threads in [1]:
+    for threads in [1, 2, 4, 8, 16]:
         with open(os.path.join("results", "bench_executor_"+str(threads)+"thrds.csv"), "w") as f:
             VBR_PATH = "/home/tgrogers-raid/a/das160/VBR-SpMV/Generated_MMarket"
             for filename in os.listdir(VBR_PATH):
