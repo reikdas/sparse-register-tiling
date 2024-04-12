@@ -1,10 +1,14 @@
 import subprocess
 import os
+import pathlib
+
+FILEPATH = pathlib.Path(__file__).resolve().parent
+BASE_PATH = os.path.join(FILEPATH, "..")
 
 if __name__ == "__main__":
     for threads in [1, 2, 4, 8, 16]:
         with open(os.path.join("results", "bench_executor_"+str(threads)+"thrds.csv"), "w") as f:
-            VBR_PATH = "/home/tgrogers-raid/a/das160/VBR-SpMV/Generated_MMarket"
+            VBR_PATH = f"{BASE_PATH}/Generated_MMarket"
             for filename in os.listdir(VBR_PATH):
                 assert(filename.endswith(".mtx"))
                 f.write(f"{filename[:-4]}")
