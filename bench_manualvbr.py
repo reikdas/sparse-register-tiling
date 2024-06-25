@@ -5,6 +5,8 @@ import pathlib
 FILEPATH = pathlib.Path(__file__).resolve().parent
 BASE_PATH = os.path.join(FILEPATH, "..")
 
+BENCHMARK_FREQ = 10
+
 if __name__ == "__main__":
     for threads in [1, 2, 4, 8, 16]:
         with open(os.path.join("results", "bench_executor_manual_"+str(threads)+"thrds.csv"), "w") as f:
@@ -15,7 +17,7 @@ if __name__ == "__main__":
                 print(f"Running {filename[:-4]} with {threads} threads")
                 output = subprocess.check_output(["python3", "run_matrix.py", "-m", os.path.join(VBR_PATH, filename), "-t", str(threads), "-b", "512", "-o", "temp.csv"]).decode("utf-8").split("\n")
                 start = -7
-                for i in range(5):
+                for i in range(BENCHMARK_FREQ):
                     print(f"{i}: {output[start+i]}")
                     f.write(","+output[start+i])
                 f.write("\n")
