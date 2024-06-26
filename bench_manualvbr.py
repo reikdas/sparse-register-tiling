@@ -16,7 +16,7 @@ if __name__ == "__main__":
                 f.write(f"{filename[:-4]}")
                 print(f"Running {filename[:-4]} with {threads} threads")
                 output = subprocess.check_output(["python3", "run_matrix.py", "-m", os.path.join(VBR_PATH, filename), "-t", str(threads), "-b", "512", "-o", "temp.csv"]).decode("utf-8").split("\n")
-                start = -7
+                start = 1
                 for i in range(BENCHMARK_FREQ):
                     print(f"{i}: {output[start+i]}")
                     f.write(","+output[start+i])

@@ -620,12 +620,12 @@ class SpMMExperiment {
                 struct timeval timeInspector2;
                 gettimeofday(&timeInspector2, NULL);
                 long timeInspector2s = timeInspector2.tv_sec * 1000000L + timeInspector2.tv_usec;
-                std::cout << (timeInspector2s - timeInspector1s) << std::endl;
+                // std::cout << (timeInspector2s - timeInspector1s) << std::endl;
 
                 zero(spmm_task.C, spmm_task.cNumel());
                 
-                // Benchmark 5 times
-                for (int i=0; i<5; i++) {
+                // Benchmark 10 times
+                for (int i=0; i<10; i++) {
                     struct timeval it1;
                     gettimeofday(&it1, NULL);
                     long it1s = it1.tv_sec * 1000000L + it1.tv_usec;
@@ -814,8 +814,8 @@ public:
     SpMMExperiment(const ryml::NodeRef& config, std::vector<std::string> search_dirs,
                    Overrides overrides):
         cake_cntx(cake_query_cntx()) {
-        std::cout << "Detected cache sizes " << cake_cntx->L2/1024 << "kb ";
-        std::cout << cake_cntx->L3/1024 << "kb" << std::endl;
+        // std::cout << "Detected cache sizes " << cake_cntx->L2/1024 << "kb ";
+        // std::cout << cake_cntx->L3/1024 << "kb" << std::endl;
 
         bool parse_b_cols_from_filelist = false;
         bool filelist_has_additional_options = false;
