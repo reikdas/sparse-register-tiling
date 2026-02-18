@@ -98,6 +98,7 @@ endif()
 add_executable(tile_cov tile_cov.cpp
         ${SRC}
         ${SOP_SOURCES}
+        ${SOP_GENERATED_SRCS}
 )
 
 target_compile_options(tile_cov PRIVATE -save-temps=obj -funroll-loops ${SPMM_METHODS_CXX_FLAGS} -lpthreads)
